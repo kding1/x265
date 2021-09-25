@@ -1,7 +1,7 @@
 # vim: syntax=cmake
 if(NOT CMAKE_BUILD_TYPE)
     # default to Release build for GCC builds
-    set(CMAKE_BUILD_TYPE Release CACHE STRING
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING
         "Choose the type of build, options are: None(CMAKE_CXX_FLAGS or CMAKE_C_FLAGS used) Debug Release RelWithDebInfo MinSizeRel."
         FORCE)
 endif()
@@ -440,7 +440,14 @@ else()
 endif()
 add_definitions(-DX265_NS=${X265_NS})
 
+# option to use main() from venc_main.cpp or default main in x265.cpp
+option(OPT_RARC_ENCODER "To use external main() or not" OFF)
+if(OPT_RARC_ENCODER)
+    add_definitions(-DRARC_ENCODER)
+endif(OPT_RARC_ENCODER)
+
 option(WARNINGS_AS_ERRORS "Stop compiles on first warning" OFF)
+
 if(WARNINGS_AS_ERRORS)
     if(GCC)
         add_definitions(-Werror)
@@ -743,20 +750,26 @@ if(ENABLE_CLI)
     if(WIN32)
         set(ExportDefs "${PROJECT_BINARY_DIR}/x265.def")
     endif(WIN32)
+
+    set(CLI_SOURCES x265.cpp x265.h x265cli.cpp x265cli.h abrEncApp.cpp abrEncApp.h)
+    if(OPT_RARC_ENCODER)
+        set(CLI_SOURCES ${CLI_SOURCES} venc_main.cpp venc_inc.h venclib.cpp venclib.h venc_util.h)
+    endif()
+
     if(XCODE)
         # Xcode seems unable to link the CLI with libs, so link as one targget
         if(ENABLE_HDR10_PLUS)
         add_executable(cli ../COPYING ${InputFiles} ${OutputFiles} ${GETOPT}
-                        x265.cpp x265.h x265cli.cpp x265cli.h abrEncApp.cpp abrEncApp.h
+                        ${CLI_SOURCES}
                         $<TARGET_OBJECTS:encoder> $<TARGET_OBJECTS:common> $<TARGET_OBJECTS:dynamicHDR10> ${ASM_OBJS})
         else()
             add_executable(cli ../COPYING ${InputFiles} ${OutputFiles} ${GETOPT}
-                        x265.cpp x265.h x265cli.cpp x265cli.h abrEncApp.cpp abrEncApp.h
+                        ${CLI_SOURCES}
                         $<TARGET_OBJECTS:encoder> $<TARGET_OBJECTS:common> ${ASM_OBJS})
         endif()
     else()
         add_executable(cli ../COPYING ${InputFiles} ${OutputFiles} ${GETOPT} ${X265_RC_FILE}
-                       ${ExportDefs} x265.cpp x265.h x265cli.cpp x265cli.h abrEncApp.cpp abrEncApp.h)
+                       ${ExportDefs} ${CLI_SOURCES})
         if(WIN32 OR NOT ENABLE_SHARED OR INTEL_CXX)
             # The CLI cannot link to the shared library on Windows, it
             # requires internal APIs not exported from the DLL
