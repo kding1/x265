@@ -24,8 +24,8 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef util_h
-#define util_h
+#ifndef venc_util_h
+#define venc_util_h
 
 #include <queue>
 #include <deque>
@@ -49,7 +49,7 @@ public:
         while (q.empty()) {
             cond.wait(lock);
         }
-        
+
         auto element = q.front();
         q.pop_front();
         return element;
@@ -79,7 +79,7 @@ public:
             return false;
         }
     }
-    
+
     void put(T& element)
     {
         std::unique_lock<std::mutex> lock(mtx);
@@ -95,12 +95,16 @@ public:
         lock.unlock();
         cond.notify_one();
     }
-    
+
     int size()
     {
-        return (int)(q.size());
+        std::unique_lock<std::mutex> lock(mtx);
+        int sz = q.size();
+        lock.unlock();
+        cond.notify_one();
+        return sz;
     }
-    
+
     void set_timeout(int ms)
     {
         timeout_ms = ms;
@@ -168,5 +172,5 @@ private:
     std::condition_variable cond;
 };
 
-#endif /* util_h */
+#endif /* venc_util_h */
 

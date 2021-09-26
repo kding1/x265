@@ -26,6 +26,7 @@
 #include "mv.h"
 #include "slice.h"
 #include "param.h"
+#include "venc_inc.h"
 
 #include <signal.h>
 #include <errno.h>
@@ -33,6 +34,7 @@
 #include <queue>
 
 using namespace X265_NS;
+using namespace std;
 
 /* Ctrl-C handler */
 static volatile sig_atomic_t b_ctrl_c /* = 0 */;
@@ -588,6 +590,13 @@ ret:
             // main encoder loop
             while (pic_in && !b_ctrl_c)
             {
+                // wait to update the lambda ratio
+                x265_log(NULL, X265_LOG_INFO, "waiting for lambda, queue size = %d ...\n", venc_tx_queue.size());
+                shared_ptr<venc_msg_node> msg;
+
+                int ret = venc_tx_queue.get(msg);
+                x265_log(NULL, X265_LOG_INFO, "received lambda...\n");
+
                 pic_orig.poc = (m_param->bField && m_param->interlaceMode) ? inFrameCount * 2 : inFrameCount;
                 if (m_cliopt.qpfile)
                 {
@@ -755,6 +764,20 @@ ret:
                     }
                     m_cliopt.printStatus(outFrameCount);
                 }
+
+                // end of frame, send the current encoded state to msg_queue
+                shared_ptr < venc_msg_node > node = make_shared< venc_msg_node >();
+                x265_log(NULL, X265_LOG_INFO, "sending current encoder state...\n");
+                node->type = TYPE_STATE_READY;
+                venc_rx_queue.put(node);
+            }
+
+            // end of seq, notify caller
+            {
+                shared_ptr < venc_msg_node > node = make_shared< venc_msg_node >();
+                node->type = TYPE_EOF;
+                x265_log(NULL, X265_LOG_INFO, "sending eos...\n");
+                venc_rx_queue.put(node);
             }
 
             /* Flush the encoder */

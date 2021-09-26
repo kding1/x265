@@ -258,14 +258,6 @@ int venc_main(int argc, char **argv)
 int main(int argc, char **argv)
 #endif
 {
-    {
-        float ratio = 0.7f;
-        for (int i = 0; i < QP_MAX_MAX; i++)
-        {
-            x265_lambda_tab[i] *= ratio;
-            x265_lambda2_tab[i] *= ratio;
-        }
-    }
 #if HAVE_VLD
     // This uses Microsoft's proprietary WCHAR type, but this only builds on Windows to start with
     VLDSetReportOptions(VLD_OPT_REPORT_TO_DEBUGGER | VLD_OPT_REPORT_TO_FILE, L"x265_leaks.txt");

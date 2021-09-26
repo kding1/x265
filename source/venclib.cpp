@@ -24,20 +24,28 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#include "venclib.h"
+#include "x265.h"
+#include "x265cli.h"
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "venclib.h"
+#include <thread>
 #include "venc_inc.h"
 #include "venc_util.h"
 
+
 #define QP_MAX_MAX      69 /* max allowed QP to be output by rate control */
 
-sync_queue<venc_msg_type> venc_msq_queue; 
+extern int venc_main(int argc, char **argv);
+
+sync_queue< shared_ptr<venc_msg_node> > venc_tx_queue;
+
+sync_queue< shared_ptr<venc_msg_node> > venc_rx_queue;
 
 
 // lambda = pow(2, (double)q / 6 - 2);
-double g_x265_lambda_tab[QP_MAX_MAX + 1] =
+static double g_x265_lambda_tab[QP_MAX_MAX + 1] =
 {
     0.2500, 0.2806, 0.3150, 0.3536, 0.3969,
     0.4454, 0.5000, 0.5612, 0.6300, 0.7071,
@@ -56,7 +64,7 @@ double g_x265_lambda_tab[QP_MAX_MAX + 1] =
 };
 
 // lambda2 = 0.038 * exp(0.234 * QP)
-double g_x265_lambda2_tab[QP_MAX_MAX + 1] =
+static double g_x265_lambda2_tab[QP_MAX_MAX + 1] =
 {
     0.0380, 0.0480, 0.0606, 0.0766, 0.0968,
     0.1224, 0.1547, 0.1955, 0.2470, 0.3121,
@@ -74,30 +82,31 @@ double g_x265_lambda2_tab[QP_MAX_MAX + 1] =
     153250.7703, 193654.4919, 244710.4321, 309226.9897, 390752.9823
 };
 
+char *argv[] = {"./x265", "--input", "foreman_cif.yuv", "--fps", "20", "--input-res", "352x288", "-o", "out.265", "--psnr", "--ssim"};
+
 void *enc_init(int bitrate, int w, int h, int gop, int mode, char *yuv_path)
 {
     enc_ctx *ctx = (enc_ctx *)malloc(sizeof(enc_ctx));
+    int argc = sizeof(argv) / sizeof(argv[0]);
+
     ctx->frm_idx = 0;
-    printf("enc_init, ctx = %p, bitrate = %d, w = %d, h = %d, gop = %d, mode = %d, yuv = %s.\n",
-           (void *)ctx, bitrate, w, h, gop, mode, yuv_path);
+
+    // start the worker thread
+    ctx->venc_worker = thread(venc_main, argc, argv);
+
     return ctx;
 }
 
 void enc_free(void *state)
 {
-    printf("enc_free, ctx = %p.\n", state);
+    enc_ctx *ctx = (enc_ctx *)state;
+    ctx->venc_worker.join();
+    free(ctx);
 }
 
 bool enc_get_state(enc_state_buf *es, void *state)
 {
     printf("enc_get_state, ctx = %p, get es qp = %d, sad = %.4f.\n", state, es->qp, es->sad);
-
-    es->qp = 1;
-    es->sad = 2.0f;
-    for (int i = 0; i < 4; i++) {
-        es->psnr[i] = i;
-    }
-    es->ssim = 4.0f;
 
     return true;
 }
@@ -108,17 +117,23 @@ bool enc_set_lambda(float lambda_v, void *state)
     return true;
 }
 
-bool enc_cur_frame(float *psnr, float *ssim, void *state)
+bool enc_cur_frame(float lambda_v, float *psnr, float *ssim, void *state)
 {
     // pls return false if no more frame exists.
+    shared_ptr < venc_msg_node > msg = make_shared< venc_msg_node >();
     enc_ctx *ctx = (enc_ctx *)state;
-    for (int i = 0; i < 4; i++) {
-        psnr[i] = i;
-    }
-    *ssim = 10.0f;
-    printf("enc_cur_frame, ctx = %p, idx = %d.\n", (void *)ctx, ctx->frm_idx);
 
-    ctx->frm_idx++;
+    // step 1: send the lambda to worker
+    msg->type = TYPE_LAMBDA_READY;
+    msg->lambda_ratio = lambda_v;
+    // x265_log(NULL, X265_LOG_INFO, "sending lambda = %4f.", msg->lambda_ratio);
+    printf("sending lambda = %4f.\n", msg->lambda_ratio);
+    venc_tx_queue.put(msg);
+    printf("sent queue size = %d.\n", venc_tx_queue.size());
+    // step 1: get encoder result
+    msg = venc_rx_queue.get();
+    // x265_log(NULL, X265_LOG_INFO, "received current encoder state.");
+    printf("received current encoder state, type = %d.\n", msg->type);
 
-    return ctx->frm_idx <= 10;
+    return msg->type != TYPE_EOF;
 }

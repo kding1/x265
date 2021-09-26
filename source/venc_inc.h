@@ -27,31 +27,36 @@
 #ifndef VENC_INC_H
 #define VENC_INC_H
 
-#ifdef __cplusplus
-extern "C"{
-#endif
 
-typedef enum venc_msg_type_t {
-    TYPE_INIT = 0,
-    TYPE_START_ENCODE,
+#include "venc_util.h"
+#include "venclib.h"
 
+using namespace std;
+
+enum {
+    TYPE_LAMBDA_READY = 0,
+    TYPE_STATE_READY,
+    TYPE_EOF,
     TYPE_EXIT,
-} venc_msg_type;
+};
+
+typedef struct venc_msg_node_t {
+    int type;               // node type, see above enum
+    float lambda_ratio;
+    enc_state_buf state;
+} venc_msg_node;
 
 typedef struct {
-    int a;
-    int b;
-    int c;
-    int d;
     int frm_idx;
+    thread venc_worker;
+
 
 } enc_ctx;
 
+extern sync_queue< shared_ptr<venc_msg_node> > venc_tx_queue;
+
+extern sync_queue< shared_ptr<venc_msg_node> > venc_rx_queue;
+
 // placeholder for internal functions
-
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // VENC_INC_H

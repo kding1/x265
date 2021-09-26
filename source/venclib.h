@@ -63,7 +63,7 @@ bool enc_set_lambda(float lambda_v, void *state);
 //      psnr: 4 values psnr for yuv, y, u and v, provided by caller
 //      ssim: single value ssim, provided by caller
 //      return false if eos
-bool enc_cur_frame(float *psnr, float *ssim, void *state);
+bool enc_cur_frame(float lambda_v, float *psnr, float *ssim, void *state);
 
 #ifdef __cplusplus
 }
