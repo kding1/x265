@@ -1,14 +1,10 @@
 
-#include "venc_inc.h"
+#include "venclib.h"
 #include "common.h"
 
 #include <stdio.h>
 
-#ifdef RARC_ENCODER
 int main(int argc, char **argv)
-#else
-int dummy(int argc, char **argv)
-#endif
 {
     void *state = NULL;
     bool eof = false;

@@ -789,6 +789,22 @@ if(ENABLE_CLI)
     install(TARGETS cli DESTINATION ${BIN_INSTALL_DIR})
 endif(ENABLE_CLI)
 
+if(OPT_RARC_ENCODER)
+    # create venc lib for the wrapper
+    set(EXTRA_LIB_SOURCES x265.cpp x265.h x265cli.cpp x265cli.h abrEncApp.cpp abrEncApp.h)
+    set(EXTRA_LIB_SOURCES ${EXTRA_LIB_SOURCES} venc_inc.h venclib.cpp venclib.h venc_util.h)
+    add_library(venc SHARED ${InputFiles} ${OutputFiles} ${GETOPT} ${EXTRA_LIB_SOURCES})
+    target_link_libraries(venc x265-shared ${EXTRA_LIB} ${PLATFORM_LIBS})
+    if(APPLE)
+        set_target_properties(venc PROPERTIES MACOSX_RPATH 1)
+    endif()
+
+    # create testing app for venclib
+    add_executable(rarc venc_main.cpp)
+    target_link_libraries(rarc venc x265-shared ${PLATFORM_LIBS} ${SVT_HEVC_LIBRARY})
+
+endif(OPT_RARC_ENCODER)
+
 if(ENABLE_ASSEMBLY AND NOT XCODE)
     option(ENABLE_TESTS "Enable Unit Tests" OFF)
     if(ENABLE_TESTS)
