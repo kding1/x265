@@ -37,6 +37,8 @@
 
 #define QP_MAX_MAX      69 /* max allowed QP to be output by rate control */
 
+using namespace std;
+
 extern int venc_main(int argc, char **argv);
 
 sync_queue< shared_ptr<venc_msg_node> > venc_tx_queue;
@@ -82,17 +84,30 @@ static double g_x265_lambda2_tab[QP_MAX_MAX + 1] =
     153250.7703, 193654.4919, 244710.4321, 309226.9897, 390752.9823
 };
 
-char *argv[] = {"./x265", "--input", "foreman_cif.yuv", "--fps", "20", "--input-res", "352x288", "-o", "out.265", "--psnr", "--ssim"};
-
 void *enc_init(int bitrate, int w, int h, int gop, int mode, char *yuv_path)
 {
     enc_ctx *ctx = (enc_ctx *)malloc(sizeof(enc_ctx));
-    int argc = sizeof(argv) / sizeof(argv[0]);
+    std::vector<char*> argv;
+    vector<string> argvv = {"x265", "--input", "foreman_cif.yuv", "--fps", "30", "--input-res", "352x288", "-o", "out.265",
+                            "--bitrate", "256", "--vbv-maxrate", "256", "--vbv-bufsize", "512",
+                            "--psnr", "--ssim", "--bframes", "0", "--profile", "main", "--rc-lookahead", "0", "--keyint", "0",
+                            "--frame-threads", "1", "--slices", "1",
+                            "--tune", "zerolatency", "--preset", "ultrafast", "-r", "recon.bin"};
+    argvv[2] = string(yuv_path);
+    argvv[6] = to_string(w) + "x" + to_string(h);
+    argvv[10] = to_string(bitrate);
+    argvv[12] = to_string(bitrate);
+    argvv[14] = to_string(bitrate * 2);
+
+    for (const auto& arg : argvv) {
+        argv.push_back((char*)arg.data());
+    }
+    argv.push_back(nullptr);
 
     ctx->frm_idx = 0;
 
     // start the worker thread
-    ctx->venc_worker = thread(venc_main, argc, argv);
+    ctx->venc_worker = thread(venc_main, argv.size() - 1, argv.data());
 
     return ctx;
 }

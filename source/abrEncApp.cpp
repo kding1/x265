@@ -546,6 +546,7 @@ ret:
             x265_picture picField1, picField2;
             x265_analysis_data* analysisInfo = (x265_analysis_data*)(&pic_out.analysisData);
             bool isAbrSave = m_cliopt.saveLevel && (m_parent->m_numEncodes > 1);
+            uint64_t cur_sz;
 
             if (!m_param->bRepeatHeaders && !m_param->bEnableSvtHevc)
             {
@@ -756,7 +757,8 @@ ret:
                         m_cliopt.recon->writePicture(pic_out);
                     if (nal)
                     {
-                        m_cliopt.totalbytes += m_cliopt.output->writeFrame(p_nal, nal, pic_out);
+                        cur_sz = m_cliopt.output->writeFrame(p_nal, nal, pic_out);
+                        m_cliopt.totalbytes += cur_sz;
                         if (pts_queue)
                         {
                             pts_queue->push(-pic_out.pts);
@@ -770,7 +772,8 @@ ret:
                 #ifdef RARC_ENCODER
                 // end of frame, send the current encoded state to msg_queue
                 shared_ptr < venc_msg_node > node = make_shared< venc_msg_node >();
-                x265_log(NULL, X265_LOG_INFO, "sending current encoder state...\n");
+                x265_log(NULL, X265_LOG_INFO, "sending current encoder state...frm_id = %d, satd_cost = %d, cur_sz = %d, totalbytes = %d.\n", 
+                        inFrameCount, g_satdCost, cur_sz, m_cliopt.totalbytes);
                 node->type = TYPE_STATE_READY;
                 venc_rx_queue.put(node);
                 #endif

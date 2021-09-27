@@ -261,6 +261,8 @@ bool FrameEncoder::initializeGeoms()
 
 bool FrameEncoder::startCompressFrame(Frame* curFrame)
 {
+    g_satdCost = curFrame->m_lowres.satdCost; // global variable for frame level satd cost.
+    x265_log(m_param, X265_LOG_DEBUG, "satd_cost = %d.\n", g_satdCost);
     m_slicetypeWaitTime = x265_mdate() - m_prevOutputTime;
     m_frame = curFrame;
     m_sliceType = curFrame->m_lowres.sliceType;

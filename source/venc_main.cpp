@@ -3,6 +3,9 @@
 #include "common.h"
 
 #include <stdio.h>
+#include <string>
+
+using namespace std;
 
 int main(int argc, char **argv)
 {
@@ -10,8 +13,18 @@ int main(int argc, char **argv)
     bool eof = false;
     float lambda = 1.0f, psnr = 0.0f, ssim = 0.0f;
     enc_state_buf es;
+    int bitrate, w, h;
 
-    state = enc_init(10000000, 352, 288, 30, 0, "./foreman_cif.yuv");
+    if (argc != 5) {
+        printf("wrong input: bitrate w h yuv_path.\n");
+        return -1;
+    }
+
+    bitrate = atoi(argv[1]);
+    w = atoi(argv[2]);
+    h = atoi(argv[3]);
+
+    state = enc_init(bitrate, w, h, 30, 0, argv[4]);
     while(!eof) {
         eof = ! enc_cur_frame(lambda, &psnr, &ssim, state);
         enc_get_state(&es, state);

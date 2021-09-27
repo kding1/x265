@@ -41,6 +41,8 @@ namespace X265_NS {
 int g_checkFailures;
 #endif
 
+int64_t g_satdCost = 0;
+
 int64_t x265_mdate(void)
 {
 #if _WIN32

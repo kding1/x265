@@ -448,6 +448,8 @@ char*    x265_slurp_file(const char *filename);
 /* located in primitives.cpp */
 void     x265_setup_primitives(x265_param* param);
 void     x265_report_simd(x265_param* param);
+
+extern int64_t g_satdCost;
 }
 
 #include "constants.h"
