@@ -27,6 +27,7 @@
 #include "venclib.h"
 #include "x265.h"
 #include "x265cli.h"
+#include "constants.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,6 +39,7 @@
 #define QP_MAX_MAX      69 /* max allowed QP to be output by rate control */
 
 using namespace std;
+using namespace X265_NS;
 
 extern int venc_main(int argc, char **argv);
 
@@ -128,7 +130,11 @@ bool enc_get_state(enc_state_buf *es, void *state)
 
 bool enc_set_lambda(float lambda_v, void *state)
 {
-    printf("enc_set_lambda, ctx = %p, lamdbda = %.4f.\n", state, lambda_v);
+    for (int i = 0; i <= QP_MAX_MAX; i++) {
+        x265_lambda_tab[i] = lambda_v * g_x265_lambda_tab[i];
+        x265_lambda2_tab[i] = lambda_v * g_x265_lambda2_tab[i];
+    }
+
     return true;
 }
 
