@@ -27,6 +27,7 @@
 #ifndef VENC_INC_H
 #define VENC_INC_H
 
+#include <pthread.h>
 
 #include "venc_util.h"
 #include "venclib.h"
@@ -48,7 +49,7 @@ typedef struct venc_msg_node_t {
 
 typedef struct {
     int frm_idx;
-    thread venc_worker;
+    pthread_t venc_worker;
 
 
 } enc_ctx;
