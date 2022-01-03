@@ -11,12 +11,12 @@ int main(int argc, char **argv)
 {
     void *state = NULL;
     bool eof = false;
-    float lambda = 1.0f, psnr = 0.0f, ssim = 0.0f;
+    float lambda = 1.0f;
     enc_state_buf es;
     int bitrate, w, h;
 
-    if (argc != 6) {
-        printf("wrong input: bitrate w h lambda yuv_path.\n");
+    if (argc != 7) {
+        printf("wrong input: bitrate_kbps w h lambda yuv_path bs_path.\n");
         return -1;
     }
 
@@ -25,10 +25,10 @@ int main(int argc, char **argv)
     h = atoi(argv[3]);
     lambda = atof(argv[4]);
 
-    state = enc_init(bitrate, w, h, 30, 0, argv[5]);
+    state = enc_init(bitrate, w, h, 30, 0, argv[5], argv[6]);
     while(!eof) {
-        eof = ! enc_cur_frame(lambda, &psnr, &ssim, state);
         enc_get_state(&es, state);
+        eof = ! enc_cur_frame(lambda, 0.0f, state);
     }
     enc_free(state);
 

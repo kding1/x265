@@ -104,12 +104,13 @@ void* venc_main_pthread(void* p)
     venc_main(argv.size() - 1, argv.data());
 }
 
-void *enc_init(int bitrate, int w, int h, int gop, int mode, char *yuv_path)
+void *enc_init(int bitrate, int w, int h, int gop, int mode, char *yuv_path, char *bs_path)
 {
     enc_ctx *ctx = (enc_ctx *)malloc(sizeof(enc_ctx));
 
     argvv[2] = string(yuv_path);
     argvv[6] = to_string(w) + "x" + to_string(h);
+    argvv[8] = string(bs_path);
     argvv[10] = to_string(bitrate);
     argvv[12] = to_string(bitrate);
     argvv[14] = to_string(bitrate * 2);
@@ -136,25 +137,27 @@ bool enc_get_state(enc_state_buf *es, void *state)
     return true;
 }
 
-bool enc_set_lambda(float lambda_v, void *state)
+bool enc_set_lambda(float rdqp_lambda, float sadqp_lambda, void *state)
 {
+    // sadqp_lambda is reserved for now.
     for (int i = 0; i <= QP_MAX_MAX; i++) {
-        x265_lambda_tab[i] = lambda_v * g_x265_lambda_tab[i];
-        x265_lambda2_tab[i] = lambda_v * g_x265_lambda2_tab[i];
+        x265_lambda_tab[i] = rdqp_lambda * g_x265_lambda_tab[i];
+        x265_lambda2_tab[i] = rdqp_lambda * g_x265_lambda2_tab[i];
     }
 
     return true;
 }
 
-bool enc_cur_frame(float lambda_v, float *psnr, float *ssim, void *state)
+bool enc_cur_frame(float rdqp_lambda, float sadqp_lambda, void *state)
 {
+    // sadqp_lambda is reserved for now.
     // pls return false if no more frame exists.
     shared_ptr < venc_msg_node > msg = make_shared< venc_msg_node >();
     enc_ctx *ctx = (enc_ctx *)state;
 
-    // step 1: send the lambda to worker
+    // step 0: send the lambda to worker
     msg->type = TYPE_LAMBDA_READY;
-    msg->lambda_ratio = lambda_v;
+    msg->lambda_ratio = rdqp_lambda;
     // x265_log(NULL, X265_LOG_INFO, "sending lambda = %4f.", msg->lambda_ratio);
     printf("sending lambda = %4f.\n", msg->lambda_ratio);
     venc_tx_queue.put(msg);

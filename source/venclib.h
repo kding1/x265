@@ -32,7 +32,8 @@ extern "C"{
 #endif
 
 typedef struct {
-    float lambda_v;     // lambda used to encode previous frame
+    float rdqp_lambda;  // rdQp lambda used to encode previous frame
+    float sadqp_lambda; // sad lambda used to encode previous frame
     int qp;             // qp used to encode previous frame
     int encoded_bits;   // already encoded bits for current gop
     float psnr[4];      // previous frame psnr for yuv, y, u and v
@@ -43,7 +44,7 @@ typedef struct {
 
 } enc_state_buf;
 
-void *enc_init(int bitrate, int w, int h, int gop, int mode, char *yuv_path);
+void *enc_init(int bitrate, int w, int h, int gop, int mode, char *yuv_path, char *bs_path);
 
 void enc_free(void *state);
 
@@ -56,14 +57,12 @@ bool enc_get_state(enc_state_buf *es, void *state);
 // based on state, RL to estimate the best lambda value to encode current buffer
 // return:
 //      return false if eos
-bool enc_set_lambda(float lambda_v, void *state);
+bool enc_set_lambda(float rdqp_lambda, float sadqp_lambda, void *state);
 
 // with the lambda, trigger the encoder to encode current frame
 // return:
-//      psnr: 4 values psnr for yuv, y, u and v, provided by caller
-//      ssim: single value ssim, provided by caller
 //      return false if eos
-bool enc_cur_frame(float lambda_v, float *psnr, float *ssim, void *state);
+bool enc_cur_frame(float rdqp_lambda, float sadqp_lambda, void *state);
 
 #ifdef __cplusplus
 }

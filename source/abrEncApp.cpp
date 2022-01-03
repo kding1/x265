@@ -598,7 +598,7 @@ ret:
 
                 int ret = venc_tx_queue.get(msg);
                 x265_log(NULL, X265_LOG_INFO, "received lambda...\n");
-                enc_set_lambda(msg->lambda_ratio, 0);
+                enc_set_lambda(msg->lambda_ratio, 0.0f, 0);
                 #endif
 
                 pic_orig.poc = (m_param->bField && m_param->interlaceMode) ? inFrameCount * 2 : inFrameCount;
